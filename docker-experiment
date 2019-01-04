@@ -13,4 +13,4 @@ docker run \
     --interactive \
     --tty \
     python-multicast-experiments \
-    /bin/bash -c "/host/setup-netns.sh; python3 /host/experiment.py"
+    /host/run-experiment-in-docker.sh

@@ -30,3 +30,9 @@ ip netns add netns-3
 ip link set veth-3-1 netns netns-3
 ip netns exec netns-3 ip link set dev veth-3-1 up
 ip netns exec netns-3 ip addr add 99.2.3.3/24 dev veth-3-1
+
+ip netns exec netns-1 python3 /host/experiment_netns1.py &
+ip netns exec netns-2 python3 /host/experiment_netns2.py &
+ip netns exec netns-2 python3 /host/experiment_netns3.py &
+
+sleep 10
