@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# Build a container that runs Ubuntu Linux and Python for testing multicast behavior
+
+docker build . --tag python-multicast-experiments

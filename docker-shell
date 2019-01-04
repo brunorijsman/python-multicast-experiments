@@ -1,0 +1,16 @@
+#!/bin/bash
+
+if [ -z "${VIRTUAL_ENV}" ] ; then
+    echo "Must run from Python virtual environment"
+    exit 1
+fi
+HOST_PATH="${VIRTUAL_ENV}/.."
+
+docker run \
+    --volume ${HOST_PATH}:/host \
+    --cap-add=NET_ADMIN \
+    --cap-add=SYS_ADMIN \
+    --interactive \
+    --tty \
+    python-multicast-experiments \
+    bash
