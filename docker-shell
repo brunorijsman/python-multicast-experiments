@@ -8,5 +8,5 @@ docker run \
     --cap-add=SYS_ADMIN \
     --interactive \
     --tty \
-    python-multicast-experiments \
+    beacons \
     bash

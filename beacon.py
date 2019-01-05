@@ -1,3 +1,4 @@
+import datetime
 import select
 import socket
 
@@ -23,6 +24,10 @@ MULTICAST_LOOPBACK = 0
 
 MAX_SIZE = 1024
 
+TICK_INTERVAL = 1.0
+
+START_ABSOLUTE_TIME = datetime.datetime.now()
+
 def create_multicast_socket(local_address):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -31,11 +36,35 @@ def create_multicast_socket(local_address):
     sock.connect((MULTICAST_ADDR, MULTICAST_PORT))
     return sock
 
-def multicast_send(sock, send_str):
-    sock.send(send_str.encode())
+def receive(_sock):
+    # TODO: Print whatever
+    pass
 
+def send(_sock):
+    # TODO: Send message
+    pass
+
+def secs_since_start():
+    # This returns a float with millisecond accuracy.
+    absolute_now = datetime.datetime.now()
+    time_delta_since_start = absolute_now - START_ABSOLUTE_TIME
+    return time_delta_since_start.total_seconds()
+
+def process_tick(socks_by_fd):
+    for sock in socks_by_fd.values():
+        send(sock)
 
 def main_loop():
-    rx_fds = []
+    socks_by_fd = {}
+    fds = []
     timeout = 1.0
-    _rx_ready, _, _ = select.select(rx_fds, [], [], timeout)
+    next_tick_time = secs_since_start() + TICK_INTERVAL
+    while True:
+        while next_tick_time <= secs_since_start():
+            process_tick(socks_by_fd)
+            next_tick_time += TICK_INTERVAL
+        timeout = next_tick_time - secs_since_start()
+        rx_fds, _, _ = select.select(fds, [], [], timeout)
+        for rx_fd in rx_fds:
+            rx_sock = socks_by_fd[rx_fd]
+            receive(rx_sock)
