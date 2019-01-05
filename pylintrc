@@ -13,6 +13,8 @@ disable=
     no-self-use,
     no-else-return,
     duplicate-code,
+    wildcard-import,
+    unused-wildcard-import
 
 extension-pkg-whitelist=netifaces
 

@@ -1,7 +1,10 @@
 {
     "cSpell.words": [
         "multicast",
-        "netns"
+        "netns",
+        "reqs",
+        "ucast",
+        "veth"
     ],
     "python.pythonPath": "env/bin/python"
 }

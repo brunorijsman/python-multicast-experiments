@@ -1,1 +1,5 @@
-print("This is netns-3")
+from common import *
+
+print("3: Start")
+
+print("3: Stop")
