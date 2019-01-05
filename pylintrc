@@ -14,7 +14,9 @@ disable=
     no-else-return,
     duplicate-code,
     wildcard-import,
-    unused-wildcard-import
+    unused-wildcard-import,
+    global-statement,
+    broad-except
 
 extension-pkg-whitelist=netifaces
 

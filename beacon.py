@@ -14,6 +14,8 @@ import netifaces
 # TODO: Loopback command-line option
 # TODO: IPv4 and IPv6
 
+ARGS = None
+
 MULTICAST_ADDR = "224.0.0.120"
 MULTICAST_PORT = 911
 MULTICAST_LOOPBACK = 0
@@ -24,8 +26,14 @@ TICK_INTERVAL = 1.0
 
 START_ABSOLUTE_TIME = datetime.datetime.now()
 
+COUNT = 0
+
 def fatal_error(message):
     sys.exit(message)
+
+def report(message):
+    global ARGS
+    print("{}: {}".format(ARGS.beacon, message))
 
 def interface_ipv4_address(interface_name):
     interface_addresses = netifaces.interfaces()
@@ -45,13 +53,18 @@ def create_multicast_socket(interface_name):
     sock.connect((MULTICAST_ADDR, MULTICAST_PORT))
     return sock
 
-def receive(_sock):
-    # TODO: Print whatever
-    pass
+def receive(interface_info):
+    (_rx_sock, _interface_name) = interface_info
+    # TODO
 
-def send(_sock):
-    # TODO: Send message
-    pass
+def send(interface_info, message):
+    (sock, interface_name) = interface_info
+    try:
+        sock.send(message.encode())
+    except Exception as exception:
+        report("exception {} while sending {} on {}".format(exception, message, interface_name))
+    else:
+        report("sent {} on {}".format(message, interface_name))
 
 def secs_since_start():
     # This returns a float with millisecond accuracy.
@@ -59,41 +72,48 @@ def secs_since_start():
     time_delta_since_start = absolute_now - START_ABSOLUTE_TIME
     return time_delta_since_start.total_seconds()
 
-def process_tick(socks_by_fd):
-    print("Tick...")
-    for sock in socks_by_fd.values():
-        send(sock)
+def process_tick(interface_infos_by_fd):
+    global ARGS, COUNT
+    nr_interfaces = len(interface_infos_by_fd)
+    interface_info = list(interface_infos_by_fd.values())[COUNT % nr_interfaces]
+    (_sock, interface_name) = interface_info
+    COUNT += 1
+    message = "message-{}-{}-{}".format(ARGS.beacon, interface_name, COUNT)
+    send(interface_info, message)
 
 def parse_command_line_arguments():
+    global ARGS
     parser = argparse.ArgumentParser(description='Multicast Beacon')
+    parser.add_argument(
+        'beacon',
+        help='Beacon name')
     parser.add_argument(
         'interface',
         nargs='+',
         help='Interface name')
-    args = parser.parse_args()
-    return args
+    ARGS = parser.parse_args()
 
-def beacon_loop(interface_names):
-    socks_by_fd = {}
+def beacon_loop():
+    interface_infos_by_fd = {}
     fds = []
-    for interface_name in interface_names:
+    for interface_name in ARGS.interface:
         sock = create_multicast_socket(interface_name)
-        socks_by_fd[sock.fileno()] = sock
+        interface_infos_by_fd[sock.fileno()] = (sock, interface_name)
         fds.append(sock.fileno())
     next_tick_time = secs_since_start() + TICK_INTERVAL
     while True:
         while next_tick_time <= secs_since_start():
-            process_tick(socks_by_fd)
+            process_tick(interface_infos_by_fd)
             next_tick_time += TICK_INTERVAL
         timeout = next_tick_time - secs_since_start()
         rx_fds, _, _ = select.select(fds, [], [], timeout)
         for rx_fd in rx_fds:
-            rx_sock = socks_by_fd[rx_fd]
-            receive(rx_sock)
+            interface_info = interface_infos_by_fd[rx_fd]
+            receive(interface_info)
 
 def main():
-    args = parse_command_line_arguments()
-    beacon_loop(args.interface)
+    parse_command_line_arguments()
+    beacon_loop()
 
 if __name__ == "__main__":
     main()
