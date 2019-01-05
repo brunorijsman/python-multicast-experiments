@@ -8,9 +8,6 @@ import sys
 
 import netifaces
 
-# TODO: Only one script instead of 3
-# TODO: Command line argument: list of interface names on which to beacon
-# TODO: Don't hard-code addresses, take it from the interface name
 # TODO: Command line argument: node name
 # TODO: On interface X send "node name + X"
 # TODO: Just infinite loop, send periodically and print everthing sent and received and errors
@@ -30,7 +27,17 @@ START_ABSOLUTE_TIME = datetime.datetime.now()
 def fatal_error(message):
     sys.exit(message)
 
-def create_multicast_socket(local_address):
+def interface_ipv4_address(interface_name):
+    interface_addresses = netifaces.interfaces()
+    if not interface_name in netifaces.interfaces():
+        fatal_error("Interface " + interface_name + " not present.")
+    interface_addresses = netifaces.ifaddresses(interface_name)
+    if not netifaces.AF_INET in interface_addresses:
+        fatal_error("Interface " + interface_name + " has no IPv4 address.")
+    return interface_addresses[netifaces.AF_INET][0]['addr']
+
+def create_multicast_socket(interface_name):
+    local_address = interface_ipv4_address(interface_name)
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_LOOP, MULTICAST_LOOPBACK)
@@ -53,6 +60,7 @@ def secs_since_start():
     return time_delta_since_start.total_seconds()
 
 def process_tick(socks_by_fd):
+    print("Tick...")
     for sock in socks_by_fd.values():
         send(sock)
 
@@ -65,19 +73,13 @@ def parse_command_line_arguments():
     args = parser.parse_args()
     return args
 
-def interface_ipv4_address(interface_name):
-    interface_addresses = netifaces.interfaces()
-    if not interface_name in netifaces.interfaces():
-        fatal_error("Interface " + interface_name + " not present.")
-    interface_addresses = netifaces.ifaddresses(interface_name)
-    if not netifaces.AF_INET in interface_addresses:
-        fatal_error("Interface " + interface_name + " has no IPv4 address.")
-    return interface_addresses[netifaces.AF_INET][0]['addr']
-
-def beacon_loop(_interface_names):
+def beacon_loop(interface_names):
     socks_by_fd = {}
     fds = []
-    timeout = 1.0
+    for interface_name in interface_names:
+        sock = create_multicast_socket(interface_name)
+        socks_by_fd[sock.fileno()] = sock
+        fds.append(sock.fileno())
     next_tick_time = secs_since_start() + TICK_INTERVAL
     while True:
         while next_tick_time <= secs_since_start():
