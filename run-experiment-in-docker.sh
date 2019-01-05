@@ -16,6 +16,8 @@
 #         |                                                  |
 #         +--------------------------------------------------+
 
+# TODO: Catch INT and cleanup (stop beacons and cleanup netns)
+
 echo "SETUP"
 echo "  Create veth pair veth-1-2 and veth-2-1"
 ip link add dev veth-1-2 type veth peer name veth-2-1
@@ -69,9 +71,10 @@ ip netns exec netns-3 ip link set dev veth-3-2 up
 echo "  Assign address 99.2.3.3/24 to veth-3-2"
 ip netns exec netns-3 ip addr add 99.2.3.3/24 dev veth-3-2
 
-ip netns exec netns-1 python3 /host/experiment_netns1.py &
-ip netns exec netns-2 python3 /host/experiment_netns2.py &
-ip netns exec netns-3 python3 /host/experiment_netns3.py &
+# TODO: Change this to beacons
+# ip netns exec netns-1 python3 /host/experiment_netns1.py &
+# ip netns exec netns-2 python3 /host/experiment_netns2.py &
+# ip netns exec netns-3 python3 /host/experiment_netns3.py &
 
 wait
 
