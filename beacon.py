@@ -163,7 +163,7 @@ def receive(sock_info):
         report("received {} on {} from {}:{}".format(message_str, interface_name, address, port))
 
 def send(sock_info, message):
-    (sock, interface_name) = sock_info
+    (sock, interface_name, _interface_index) = sock_info
     try:
         report("send {} on {} from {} to {}".format(message, interface_name, sock.getsockname(),
                                                     sock.getpeername()))
@@ -181,7 +181,7 @@ def process_tick(tx_sock_infos_by_fd):
     global ARGS, COUNT
     nr_interfaces = len(tx_sock_infos_by_fd)
     sock_info = list(tx_sock_infos_by_fd.values())[COUNT % nr_interfaces]
-    (_sock, interface_name) = sock_info
+    (_sock, interface_name, _interface_index) = sock_info
     COUNT += 1
     message = "{}-message-{}-to-{}".format(ARGS.beacon, COUNT, interface_name)
     send(sock_info, message)
@@ -203,7 +203,8 @@ def beacon_loop():
     tx_sock_infos_by_fd = {}
     for interface_name in ARGS.interface:
         sock = create_tx_socket(interface_name)
-        tx_sock_infos_by_fd[sock.fileno()] = (sock, interface_name)
+        interface_index = socket.if_nametoindex(interface_name)
+        tx_sock_infos_by_fd[sock.fileno()] = (sock, interface_name, interface_index)
     # Create RX sockets
     rx_sock_infos_by_fd = {}
     rx_fds = []
