@@ -10,12 +10,6 @@ import sys
 
 import netifaces
 
-# TODO: Command line argument: node name
-# TODO: On interface X send "node name + X"
-# TODO: Just infinite loop, send periodically and print everthing sent and received and errors
-# TODO: Loopback command-line option
-# TODO: IPv4 and IPv6
-
 ARGS = None
 
 MULTICAST_ADDR = "224.0.0.120"
@@ -49,44 +43,32 @@ def interface_ipv4_address(interface_name):
 def create_rx_socket(interface_name):
     local_address = interface_ipv4_address(interface_name)
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-    # TODO: Explain what SO_REUSEADDR does
     try:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     except AttributeError:
-        # SO_REUSEADDR is not supported on all platforms
         pass
-    # TODO: Explain what SO_REUSEPORT does
     try:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
     except AttributeError:
-        # SO_REUSEPORT is not supported on all platforms
         pass
     sock.bind((MULTICAST_ADDR, MULTICAST_PORT))
-    ###@@@ req = struct.pack("=4s4s", socket.inet_aton(MULTICAST_ADDR), socket.inet_aton(local_address))
-    req = socket.inet_aton(MULTICAST_ADDR) + socket.inet_aton(local_address) ###@@@ This better? No..
-    # Maybe this limits receive to a specific interface?
-    sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(local_address))
-    report("join group {} on {} for local address {}".format(MULTICAST_ADDR, interface_name, local_address))
+    report("join group {} on {} for local address {}".format(MULTICAST_ADDR, interface_name,
+                                                             local_address))
+    req = struct.pack("=4s4s", socket.inet_aton(MULTICAST_ADDR), socket.inet_aton(local_address))
     sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, req)
     return sock
 
 def create_tx_socket(interface_name):
     local_address = interface_ipv4_address(interface_name)
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-    # TODO: Explain what SO_REUSEADDR does
     try:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     except AttributeError:
-        # SO_REUSEADDR is not supported on all platforms
         pass
-    # TODO: Explain what SO_REUSEPORT does
     try:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
     except AttributeError:
-        # SO_REUSEPORT is not supported on all platforms
         pass
-    # Set the outgoing interface for sent multicast packets. If you don't set this option, the
-    # packet will be sent on all interfaces.   TODO: Really?
     sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(local_address))
     # Disable the loopback of sent multicast packets to listening sockets on the same host. We don't
     # want this to happen because each beacon is listening on the same port and the same multicast
@@ -113,7 +95,8 @@ def receive(sock_info):
 def send(sock_info, message):
     (sock, interface_name) = sock_info
     try:
-        report("send {} on {} from {} to {}".format(message, interface_name, sock.getsockname(), sock.getpeername()))
+        report("send {} on {} from {} to {}".format(message, interface_name, sock.getsockname(),
+                                                    sock.getpeername()))
         sock.send(message.encode())
     except Exception as exception:
         report("exception {} while sending {} on {}".format(exception, message, interface_name))
