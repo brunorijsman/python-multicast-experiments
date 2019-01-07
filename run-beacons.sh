@@ -88,31 +88,48 @@ ip netns exec netns-3 ip link set dev veth-3-2 up
 echo "  Assign address 99.2.3.3/24 to veth-3-2"
 ip netns exec netns-3 ip addr add 99.2.3.3/24 dev veth-3-2
 
-###@@@ ip netns exec netns-1 /host/beacon.py beacon1 veth-1-2 veth-1-3a veth-1-3b &
-ip netns exec netns-1 /host/beacon.py beacon1 veth-1-2 &
-BEACON_1_PID=$1
+echo "TCPDUMP"
+echo "  Run tcpdump on each interface"
+ip netns exec netns-1 bash -c 'tcpdump -Q in -l -i veth-1-2 udp | sed "s/^/RX veth-1-2: /"' &
+ip netns exec netns-1 bash -c 'tcpdump -Q out -l -i veth-1-2 udp | sed "s/^/TX veth-1-2: /"' &
+ip netns exec netns-1 bash -c 'tcpdump -Q in -l -i veth-1-3a udp | sed "s/^/RX veth-1-3a: /"' &
+ip netns exec netns-1 bash -c 'tcpdump -Q out -l -i veth-1-3a udp | sed "s/^/TX veth-1-3a: /"' &
+ip netns exec netns-1 bash -c 'tcpdump -Q in -l -i veth-1-3b udp | sed "s/^/RX veth-1-3b: /"' &
+ip netns exec netns-1 bash -c 'tcpdump -Q out -l -i veth-1-3b udp | sed "s/^/TX veth-1-3b: /"' &
+ip netns exec netns-2 bash -c 'tcpdump -Q in -l -i veth-2-1 udp | sed "s/^/RX veth-2-1: /"' &
+ip netns exec netns-2 bash -c 'tcpdump -Q out -l -i veth-2-1 udp | sed "s/^/TX veth-2-1: /"' &
+ip netns exec netns-2 bash -c 'tcpdump -Q in -l -i veth-2-3 udp | sed "s/^/RX veth-2-3: /"' &
+ip netns exec netns-2 bash -c 'tcpdump -Q out -l -i veth-2-3 udp | sed "s/^/TX veth-2-3: /"' &
+ip netns exec netns-3 bash -c 'tcpdump -Q in -l -i veth-3-1a udp | sed "s/^/RX veth-3-1a: /"' &
+ip netns exec netns-3 bash -c 'tcpdump -Q out -l -i veth-3-1a udp | sed "s/^/TX veth-3-1a: /"' &
+ip netns exec netns-3 bash -c 'tcpdump -Q in -l -i veth-3-1b udp | sed "s/^/RX veth-3-1b: /"' &
+ip netns exec netns-3 bash -c 'tcpdump -Q out -l -i veth-3-1b udp | sed "s/^/TX veth-3-1b: /"' &
+ip netns exec netns-3 bash -c 'tcpdump -Q in -l -i veth-3-2 udp | sed "s/^/RX veth-3-2: /"' &
+ip netns exec netns-3 bash -c 'tcpdump -Q out -l -i veth-3-2 udp | sed "s/^/TX veth-3-2: /"' &
+echo ""
 
+sleep 2
+
+echo "BEACONS"
+echo "  Start beacon in netns-1"
+ip netns exec netns-1 /host/beacon.py beacon1 veth-1-2 veth-1-3a veth-1-3b &
+echo "  Start beacon in netns-2"
 ip netns exec netns-2 /host/beacon.py beacon2 veth-2-1 veth-2-3 &
-BEACON_2_PID=$1
+echo "  Start beacon in netns-3"
+ip netns exec netns-3 /host/beacon.py beacon3 veth-3-1a veth-3-1b veth-3-2 &
 
-###@@@ ip netns exec netns-3 /host/beacon.py beacon3 veth-3-1a veth-3-1b veth-3-2 &
-###@@@ ip netns exec netns-3 /host/beacon.py beacon3 veth-3-2 &
-BEACON_3_PID=$1
-
-wait
-
-echo "CLEANUP"
-echo "  Delete veth pair veth-1-2 and veth-2-1"
-ip netns exec netns-1 ip link del veth-1-2
-echo "  Delete veth pair veth-2-3 and veth-3-2"
-ip netns exec netns-2 ip link del veth-2-3
-echo "  Delete veth pair veth-1-3a and veth-3-1a"
-ip netns exec netns-1 ip link del veth-1-3a
-echo "  Delete veth pair veth-1-3b and veth-3-1b"
-ip netns exec netns-1 ip link del veth-1-3a
-echo "  Delete netns-1"
-ip netns del netns-1
-echo "  Delete netns-2"
-ip netns del netns-2
-echo "  Delete netns-3"
-ip netns del netns-3
+# echo "CLEANUP"
+# echo "  Delete veth pair veth-1-2 and veth-2-1"
+# ip netns exec netns-1 ip link del veth-1-2
+# echo "  Delete veth pair veth-2-3 and veth-3-2"
+# ip netns exec netns-2 ip link del veth-2-3
+# echo "  Delete veth pair veth-1-3a and veth-3-1a"
+# ip netns exec netns-1 ip link del veth-1-3a
+# echo "  Delete veth pair veth-1-3b and veth-3-1b"
+# ip netns exec netns-1 ip link del veth-1-3a
+# echo "  Delete netns-1"
+# ip netns del netns-1
+# echo "  Delete netns-2"
+# ip netns del netns-2
+# echo "  Delete netns-3"
+# ip netns del netns-3
