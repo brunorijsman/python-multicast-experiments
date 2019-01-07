@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
 
+# Small sections of this code, namely those dealing with IP_PKTINFO and in_pktinfo have been copied
+# from github project https://github.com/etingof/pysnmp, which is subject to the BSD 2-Clause
+# "Simplified" License, which allows us to re-use the code, under the condition that the following
+# copyright notice included:
+#   Copyright (c) 2005-2019, Ilya Etingof <etingof@gmail.com> All rights reserved.
+# See https://github.com/etingof/pysnmp/blob/master/LICENSE.rst for the license of the copied code.
+
 import argparse
+import ctypes
 import datetime
 import random
 import select
@@ -23,6 +31,45 @@ TICK_INTERVAL = 5.0
 START_ABSOLUTE_TIME = datetime.datetime.now()
 
 COUNT = 0
+
+SYMBOLS = {
+    'IP_PKTINFO': 8,
+    'IP_TRANSPARENT': 19,
+    'SOL_IPV6': 41,
+    'IPV6_RECVPKTINFO': 49,
+    'IPV6_PKTINFO': 50
+}
+
+# pylint:disable=invalid-name
+uint32_t = ctypes.c_uint32
+
+in_addr_t = uint32_t
+
+class in_addr(ctypes.Structure):
+    _fields_ = [('s_addr', in_addr_t)]
+
+class in6_addr_U(ctypes.Union):
+    _fields_ = [
+        ('__u6_addr8', ctypes.c_uint8 * 16),
+        ('__u6_addr16', ctypes.c_uint16 * 8),
+        ('__u6_addr32', ctypes.c_uint32 * 4),
+    ]
+
+class in6_addr(ctypes.Structure):
+    _fields_ = [
+        ('__in6_u', in6_addr_U),
+    ]
+
+class in_pktinfo(ctypes.Structure):
+    _fields_ = [
+        ('ipi_ifindex', ctypes.c_int),
+        ('ipi_spec_dst', in_addr),
+        ('ipi_addr', in_addr),
+    ]
+
+for symbol in SYMBOLS:
+    if not hasattr(socket, symbol):
+        setattr(socket, symbol, SYMBOLS[symbol])
 
 def fatal_error(message):
     sys.exit(message)
@@ -51,6 +98,16 @@ def create_rx_socket(interface_name):
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
     except AttributeError:
         pass
+    # pylint:disable=no-member
+    # We join the multicast group on a particular local interface, identified by local_address.
+    # That means multicast packets received on that interface will be accepted. Note, however,
+    # that if there are multiple sockets S1, S2, S3, ... that have joined the same multicast group
+    # (same multicast address and same port) on different interfaces I1, I2, I3, ... then if we
+    # receive a multicast packet on ANY of the interfaces I1, I2, I3... then ALL the sockets S1,
+    # S2, S3, ... will be notified that a packet has been received. We use the IP_PKTINFO socket
+    # option to determine on which interface I the packet was *really* received and ignore the
+    # packet on all other sockets.
+    sock.setsockopt(socket.SOL_IP, socket.IP_PKTINFO, 1)
     sock.bind((MULTICAST_ADDR, MULTICAST_PORT))
     report("join group {} on {} for local address {}".format(MULTICAST_ADDR, interface_name,
                                                              local_address))
@@ -82,13 +139,26 @@ def create_tx_socket(interface_name):
     return sock
 
 def receive(sock_info):
-    (sock, interface_name) = sock_info
+    # pylint:disable=too-many-locals
+    (sock, interface_name, interface_index) = sock_info
+    ancillary_size = socket.CMSG_LEN(MAX_SIZE)
     try:
-        message, from_address_and_port = sock.recvfrom(MAX_SIZE)
+        message, ancillary_messages, _msg_flags, source = sock.recvmsg(MAX_SIZE, ancillary_size)
     except Exception as exception:
         report("exception {} while receiving on {}".format(exception, interface_name))
     else:
-        (address, port) = from_address_and_port
+        (address, port) = source
+        # We use the IP_PKTINFO ancillary data to determine on which interface the packet was
+        # *really* received, and we ignore the packet if this socket is not associated with that
+        # particular interface. See comment in create_rx_socket for additional details.
+        rx_interface_index = None
+        for anc in ancillary_messages:
+            # pylint:disable=no-member
+            if anc[0] == socket.SOL_IP and anc[1] == socket.IP_PKTINFO:
+                packet_info = in_pktinfo.from_buffer_copy(anc[2])
+                rx_interface_index = packet_info.ipi_ifindex
+        if rx_interface_index and (rx_interface_index != interface_index):
+            return
         message_str = message.decode()
         report("received {} on {} from {}:{}".format(message_str, interface_name, address, port))
 
@@ -139,7 +209,8 @@ def beacon_loop():
     rx_fds = []
     for interface_name in ARGS.interface:
         sock = create_rx_socket(interface_name)
-        rx_sock_infos_by_fd[sock.fileno()] = (sock, interface_name)
+        interface_index = socket.if_nametoindex(interface_name)
+        rx_sock_infos_by_fd[sock.fileno()] = (sock, interface_name, interface_index)
         rx_fds.append(sock.fileno())
     # Random start tick time, to avoid all beacons being synchronized
     next_tick_time = secs_since_start() + random.uniform(0.0, TICK_INTERVAL)

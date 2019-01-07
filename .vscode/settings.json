@@ -1,9 +1,21 @@
 {
     "cSpell.words": [
+        "ancillary",
+        "cmsg",
+        "ctypes",
+        "etingof",
+        "gmail",
+        "ifindex",
+        "ilya",
         "multicast",
+        "nametoindex",
         "netns",
+        "pylint",
+        "recvmsg",
+        "recvpktinfo",
         "reqs",
         "ucast",
+        "uint",
         "veth"
     ],
     "python.pythonPath": "env/bin/python"
