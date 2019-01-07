@@ -88,10 +88,16 @@ ip netns exec netns-3 ip link set dev veth-3-2 up
 echo "  Assign address 99.2.3.3/24 to veth-3-2"
 ip netns exec netns-3 ip addr add 99.2.3.3/24 dev veth-3-2
 
-# TODO: Change this to beacons
-# ip netns exec netns-1 python3 /host/experiment_netns1.py &
-# ip netns exec netns-2 python3 /host/experiment_netns2.py &
-# ip netns exec netns-3 python3 /host/experiment_netns3.py &
+###@@@ ip netns exec netns-1 /host/beacon.py beacon1 veth-1-2 veth-1-3a veth-1-3b &
+ip netns exec netns-1 /host/beacon.py beacon1 veth-1-2 &
+BEACON_1_PID=$1
+
+ip netns exec netns-2 /host/beacon.py beacon2 veth-2-1 veth-2-3 &
+BEACON_2_PID=$1
+
+###@@@ ip netns exec netns-3 /host/beacon.py beacon3 veth-3-1a veth-3-1b veth-3-2 &
+###@@@ ip netns exec netns-3 /host/beacon.py beacon3 veth-3-2 &
+BEACON_3_PID=$1
 
 wait
 
