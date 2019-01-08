@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
-###@@@ TODO: It appears to work. Verify carefully, cleanup, and port to real code.
-
-###@@@ TODO: Check that IPv6 also works with normal (non link-local) addresses
+# TODO: Check that IPv6 also works with normal (non link-local) addresses
 
 # We join the multicast group on a particular local interface, identified by local_address.
 # That means multicast packets received on that interface will be accepted. Note, however,
@@ -24,13 +22,14 @@
 # from the same host on a different interface. IP_MULTICAST_IF is enabled by default, so we have
 # to explicitly disable it)
 
-
-# TODO:
+# TODO: Set TTL as follows:
 # ttl_bin = struct.pack('@i', MYTTL)
 # if addrinfo[0] == socket.AF_INET: # IPv4
 #     s.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, ttl_bin)
 # else:
 #     s.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_MULTICAST_HOPS, ttl_bin)
+
+# TODO: Set TOS and Priority
 
 import argparse
 import ctypes
