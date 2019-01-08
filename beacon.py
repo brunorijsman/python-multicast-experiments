@@ -139,28 +139,6 @@ def interface_ipv6_address(interface_name, exclude_scope=False):
             address_str = address_str.split("%")[0]
     return address_str
 
-def bind_ipv6_socket(sock, address, port):
-    print("socket.getaddrinfo({}, {})".format(address, port))
-    ###@@@ TODO: Explain this
-    found = False
-    for ainfo in socket.getaddrinfo(address, port):
-        print("ainfo = {}".format(ainfo))
-    for ainfo in socket.getaddrinfo(address, port):
-        if ainfo[0].name == 'AF_INET6' and ainfo[1].name == 'SOCK_DGRAM':
-            bind_address = ainfo[4]
-            found = True
-            break
-    assert found
-    # ### HACK
-    # ### TODO: Figure out why we cannot remove this
-    # if bind_address == ('ff02::a1f7', 911, 0, 0):
-    #     return
-        # a, b, c, d = bind_address
-        # a += "%" + interface_name
-        # bind_address = (a, b, c, d)
-    print("bind_address = ", bind_address) ###@@@
-    sock.bind(bind_address)
-
 def enable_addr_and_port_reuse(sock):
     try:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
