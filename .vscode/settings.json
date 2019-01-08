@@ -1,5 +1,6 @@
 {
     "cSpell.words": [
+        "ainfo",
         "ancillary",
         "cmsg",
         "ctypes",
@@ -8,8 +9,11 @@
         "ifindex",
         "ilya",
         "multicast",
+        "myttl",
         "nametoindex",
         "netns",
+        "protoip",
+        "pton",
         "pylint",
         "recvmsg",
         "recvpktinfo",
